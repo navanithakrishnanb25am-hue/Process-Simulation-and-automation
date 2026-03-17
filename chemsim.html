@@ -1,423 +1,310 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-<title>ChemSim Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>ChemSim Ultimate Dashboard</title>
 
 <style>
-
-body{
-font-family:Arial;
-margin:0;
-color:white;
-overflow-x:hidden;
+body {
+    font-family: 'Segoe UI';
+    background: #eef3f9;
+    margin:0;
 }
 
-/* Animated background */
+h1 { text-align:center; }
 
-body::before{
-content:"";
-position:fixed;
-width:200%;
-height:200%;
-background:linear-gradient(45deg,#0f2027,#203a43,#2c5364,#1c92d2);
-animation:bgmove 20s infinite linear;
-z-index:-1;
+.dashboard {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
+    width:90%;
+    margin:auto;
 }
 
-@keyframes bgmove{
-0%{transform:translate(0,0)}
-50%{transform:translate(-20%,-20%)}
-100%{transform:translate(0,0)}
+.card {
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Navbar */
-
-.navbar{
-display:flex;
-justify-content:center;
-background:rgba(0,0,0,0.3);
-padding:10px;
+input, select {
+    width:90%;
+    padding:8px;
+    margin:5px 0;
 }
 
-.navbar button{
-margin:5px;
-padding:10px 20px;
-border:none;
-border-radius:6px;
-background:#00c9ff;
-cursor:pointer;
-font-weight:bold;
+button {
+    padding:10px;
+    background:#3498db;
+    color:white;
+    border:none;
+    margin-top:10px;
+    cursor:pointer;
 }
 
-.navbar button:hover{
-background:#92fe9d;
+canvas { background:white; }
+
+.smoke {
+    position:absolute;
+    width:15px;
+    height:15px;
+    background:rgba(200,200,200,0.4);
+    border-radius:50%;
+    animation:rise 1.5s linear forwards;
 }
 
-/* Tabs */
-
-.tab{
-display:none;
-padding:30px;
-animation:fade 0.6s;
+@keyframes rise {
+    to { transform:translateY(-100px); opacity:0; }
 }
-
-@keyframes fade{
-from{opacity:0;transform:translateY(20px)}
-to{opacity:1}
-}
-
-.panel{
-background:rgba(255,255,255,0.1);
-backdrop-filter:blur(10px);
-padding:20px;
-border-radius:10px;
-max-width:700px;
-margin:auto;
-}
-
-input{
-width:100%;
-padding:8px;
-margin-top:5px;
-margin-bottom:10px;
-border-radius:5px;
-border:none;
-}
-
-button.action{
-width:100%;
-padding:10px;
-margin-top:10px;
-border:none;
-border-radius:5px;
-background:#00c9ff;
-cursor:pointer;
-}
-
-button.action:hover{
-background:#92fe9d;
-}
-
-canvas{
-background:white;
-border-radius:10px;
-margin-top:20px;
-}
-
-.flow{
-position:relative;
-height:200px;
-margin-top:20px;
-}
-
-.reactor{
-position:absolute;
-width:80px;
-height:60px;
-border-radius:10px;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-color:white;
-}
-
-.pipe{
-position:absolute;
-height:4px;
-background:white;
-}
-
 </style>
-
 </head>
 
 <body>
 
-<div class="navbar">
+<h1>⚗ ChemSim Ultimate</h1>
 
-<button onclick="openTab('dashboard')">Dashboard</button>
-<button onclick="openTab('simulation')">Simulation</button>
-<button onclick="openTab('optimization')">Optimization</button>
-<button onclick="openTab('plant')">Plant Diagram</button>
+<div class="dashboard">
 
-</div>
+<div class="card">
+<h3>Reaction Setup</h3>
 
-<!-- Dashboard -->
+<input id="reaction" value="A + B → P">
 
-<div id="dashboard" class="tab" style="display:block">
+<label>Initial A</label>
+<input id="cA" value="1">
 
-<div class="panel">
+<label>Initial B</label>
+<input id="cB" value="1">
 
-<h2>ChemSim Process Simulator</h2>
+<label>Order A</label>
+<input id="orderA" value="1">
 
-<p>This simulator models a first-order chemical reaction:</p>
-
-<p>A → B</p>
-
-<p>You can run simulations, visualize graphs, and optimize temperature.</p>
+<label>Order B</label>
+<input id="orderB" value="1">
 
 </div>
 
-</div>
+<div class="card">
+<h3>Kinetics</h3>
 
-<!-- Simulation -->
+<label>k₀</label>
+<input id="k0" value="1">
 
-<div id="simulation" class="tab">
+<label>Activation Energy</label>
+<input id="Ea" value="50000">
 
-<div class="panel">
+<label>Temperature (K)</label>
+<input id="T" value="298">
 
-<h2>Reaction Simulation</h2>
-
-<label>Initial Concentration</label>
-<input id="c0" value="1">
-
-<label>Rate Constant</label>
-<input id="k" value="0.2">
-
-<label>Reaction Time</label>
+<label>Time</label>
 <input id="time" value="20">
 
-<label>Reactors</label>
-<input id="reactors" value="3">
+<button onclick="simulate()">Run</button>
 
-<button class="action" onclick="runSimulation()">Run Simulation</button>
+<p>Rate: <span id="rate"></span></p>
+<p>Conversion: <span id="conv"></span></p>
 
-<button class="action" onclick="downloadCSV()">Export CSV</button>
-
-<button class="action" onclick="saveGraph()">Save Graph PNG</button>
-
-<div>Final Reactant: <span id="finalA">---</span></div>
-<div>Final Product: <span id="finalB">---</span></div>
-
-<canvas id="chart"></canvas>
+<p>Yield (mol/L): <span id="yieldMol"></span></p>
+<p>Yield (%): <span id="yieldPercent"></span></p>
 
 </div>
 
+<div class="card" style="grid-column:span 2;">
+<h3>Molecule Simulation</h3>
+<canvas id="molCanvas" width="800" height="250"></canvas>
 </div>
 
-<!-- Optimization -->
-
-<div id="optimization" class="tab">
-
-<div class="panel">
-
-<h2>Temperature Optimization</h2>
-
-<button class="action" onclick="optimize()">Run Optimization</button>
-
-<div>Optimal Temperature: <span id="optTemp">---</span></div>
-<div>Maximum Yield: <span id="optYield">---</span></div>
-
-<canvas id="optChart"></canvas>
-
+<div class="card" style="grid-column:span 2;">
+<h3>Concentration vs Time</h3>
+<canvas id="graph" width="800" height="350"></canvas>
 </div>
 
 </div>
-
-<!-- Plant -->
-
-<div id="plant" class="tab">
-
-<div class="panel">
-
-<h2>Plant Process Flow</h2>
-
-<div class="flow" id="flow"></div>
-
-</div>
-
-</div>
-
 
 <script>
 
-function openTab(id){
+const R = 8.314;
 
-let tabs=document.getElementsByClassName("tab");
+// ---------------- SIMULATION ----------------
+function simulate(){
 
-for(let t of tabs) t.style.display="none";
+let CA0 = parseFloat(document.getElementById("cA").value);
+let CB0 = parseFloat(document.getElementById("cB").value);
+let m = parseFloat(document.getElementById("orderA").value);
+let n = parseFloat(document.getElementById("orderB").value);
 
-document.getElementById(id).style.display="block";
+let k0v = parseFloat(document.getElementById("k0").value);
+let EaV = parseFloat(document.getElementById("Ea").value);
+let Tval = parseFloat(document.getElementById("T").value);
+let tmax = parseFloat(document.getElementById("time").value);
 
+let k = k0v * Math.exp(-EaV/(R*Tval));
+
+let t=[], CA=[], CP=[];
+
+for(let i=0;i<=100;i++){
+    let time = (i/100)*tmax;
+
+    let cA = CA0/(1+k*time);
+    let cP = CA0 - cA;
+
+    t.push(time);
+    CA.push(cA);
+    CP.push(cP);
 }
 
-let chart
-let optChart
+let finalCA = CA[CA.length-1];
+let finalCP = CP[CP.length-1];
 
-let timeData=[]
-let reactant=[]
-let product=[]
+// CALCULATIONS
+let rate = k*Math.pow(finalCA,m)*Math.pow(CB0,n);
+let conversion = ((CA0-finalCA)/CA0)*100;
 
-function runSimulation(){
+let yieldMol = finalCP;
+let yieldPercent = (finalCP/CA0)*100;
 
-let C0=parseFloat(document.getElementById("c0").value)
-let k=parseFloat(document.getElementById("k").value)
-let tmax=parseFloat(document.getElementById("time").value)
-let reactors=parseInt(document.getElementById("reactors").value)
+// DISPLAY
+document.getElementById("rate").innerText =
+rate.toFixed(3)+" mol/L·min";
 
-timeData=[]
-reactant=[]
-product=[]
+document.getElementById("conv").innerText =
+conversion.toFixed(2)+" %";
 
-for(let i=0;i<100;i++){
+document.getElementById("yieldMol").innerText =
+yieldMol.toFixed(3)+" mol/L";
 
-let t=i*(tmax/100)
+document.getElementById("yieldPercent").innerText =
+yieldPercent.toFixed(2)+" %";
 
-let C=C0*Math.exp(-k*t)
-
-timeData.push(t)
-reactant.push(C)
-product.push(C0-C)
-
+// GRAPH + MOLECULES
+drawGraph(t,CA,CP);
+initMolecules(Tval,EaV);
 }
 
-document.getElementById("finalA").innerText=reactant[99].toFixed(3)
-document.getElementById("finalB").innerText=product[99].toFixed(3)
+// ---------------- GRAPH ----------------
+function drawGraph(t,CA,CP){
 
-drawChart()
-drawPlant(reactors)
+let c=document.getElementById("graph");
+let ctx=c.getContext("2d");
 
+ctx.clearRect(0,0,800,350);
+
+// axes
+ctx.beginPath();
+ctx.moveTo(50,300);
+ctx.lineTo(750,300);
+ctx.moveTo(50,300);
+ctx.lineTo(50,50);
+ctx.stroke();
+
+ctx.fillText("Time (min)",350,340);
+ctx.fillText("Conc (mol/L)",5,50);
+
+let maxY = Math.max(...CA);
+
+// reactant
+ctx.beginPath();
+for(let i=0;i<t.length;i++){
+let x=50+i/t.length*700;
+let y=300-(CA[i]/maxY)*250;
+i==0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+}
+ctx.stroke();
+
+// product
+ctx.beginPath();
+for(let i=0;i<t.length;i++){
+let x=50+i/t.length*700;
+let y=300-(CP[i]/maxY)*250;
+i==0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+}
+ctx.stroke();
 }
 
-function drawChart(){
+// ---------------- MOLECULES ----------------
+let canvas = document.getElementById("molCanvas");
+let ctxMol = canvas.getContext("2d");
 
-let ctx=document.getElementById("chart").getContext("2d")
+let molecules=[];
 
-if(chart) chart.destroy()
+function initMolecules(T,Ea){
 
-chart=new Chart(ctx,{
-type:"line",
-data:{
-labels:timeData,
-datasets:[
-{label:"Reactant A",data:reactant,borderColor:"red"},
-{label:"Product B",data:product,borderColor:"green"}
-]
-},
-options:{responsive:true}
-})
+molecules=[];
 
+for(let i=0;i<20;i++) molecules.push(createParticle("A",T));
+for(let i=0;i<20;i++) molecules.push(createParticle("B",T));
+
+animateMolecules(T,Ea);
 }
 
-function drawPlant(n){
-
-let flow=document.getElementById("flow")
-
-flow.innerHTML=""
-
-let start=50
-
-for(let i=0;i<n;i++){
-
-let r=document.createElement("div")
-
-r.className="reactor"
-
-let conc=reactant[Math.floor((i+1)*20)]
-
-if(conc>0.7) r.style.background="red"
-else if(conc>0.3) r.style.background="orange"
-else r.style.background="green"
-
-r.innerText="R"+(i+1)
-
-r.style.left=(start+i*150)+"px"
-r.style.top="60px"
-
-flow.appendChild(r)
-
-if(i<n-1){
-
-let pipe=document.createElement("div")
-
-pipe.className="pipe"
-pipe.style.width="80px"
-pipe.style.left=(start+80+i*150)+"px"
-pipe.style.top="90px"
-
-flow.appendChild(pipe)
-
+function createParticle(type,T){
+let speed = T/200;
+return {
+type:type,
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+dx:(Math.random()-0.5)*speed,
+dy:(Math.random()-0.5)*speed
+};
 }
 
+function animateMolecules(T,Ea){
+
+function loop(){
+
+ctxMol.clearRect(0,0,canvas.width,canvas.height);
+
+for(let m of molecules){
+
+m.x+=m.dx;
+m.y+=m.dy;
+
+if(m.x<0||m.x>canvas.width) m.dx*=-1;
+if(m.y<0||m.y>canvas.height) m.dy*=-1;
+
+ctxMol.beginPath();
+ctxMol.fillStyle = m.type=="A"?"blue":m.type=="B"?"green":"red";
+ctxMol.arc(m.x,m.y,5,0,Math.PI*2);
+ctxMol.fill();
 }
 
+// collisions
+for(let i=0;i<molecules.length;i++){
+for(let j=i+1;j<molecules.length;j++){
+
+let a=molecules[i], b=molecules[j];
+let dx=a.x-b.x, dy=a.y-b.y;
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+if(dist<10 && a.type=="A" && b.type=="B"){
+
+let prob = Math.exp(-Ea/(R*T));
+
+if(Math.random()<prob){
+a.type="P";
+b.type="P";
+createSmoke(a.x,a.y);
+}
+}
+}
 }
 
-function optimize(){
-
-let C0=parseFloat(document.getElementById("c0").value)
-let k=parseFloat(document.getElementById("k").value)
-
-let temps=[]
-let yields=[]
-
-for(let T=50;T<=150;T++){
-
-let ktemp=k*(T/100)
-
-let y=C0*(1-Math.exp(-ktemp*10))
-
-temps.push(T)
-yields.push(y)
-
+requestAnimationFrame(loop);
 }
 
-let maxYield=Math.max(...yields)
-
-let optTemp=temps[yields.indexOf(maxYield)]
-
-document.getElementById("optTemp").innerText=optTemp+" °C"
-document.getElementById("optYield").innerText=maxYield.toFixed(3)
-
-let ctx=document.getElementById("optChart").getContext("2d")
-
-if(optChart) optChart.destroy()
-
-optChart=new Chart(ctx,{
-type:"line",
-data:{
-labels:temps,
-datasets:[{label:"Yield",data:yields,borderColor:"cyan"}]
-}
-})
-
+loop();
 }
 
-function downloadCSV(){
-
-let csv="Time,Reactant,Product\n"
-
-for(let i=0;i<timeData.length;i++){
-
-csv+=timeData[i]+","+reactant[i]+","+product[i]+"\n"
-
+// ---------------- SMOKE ----------------
+function createSmoke(x,y){
+for(let i=0;i<5;i++){
+let s=document.createElement("div");
+s.className="smoke";
+s.style.left=x+"px";
+s.style.top=y+"px";
+document.body.appendChild(s);
+setTimeout(()=>s.remove(),1000);
 }
-
-let blob=new Blob([csv])
-
-let a=document.createElement("a")
-
-a.href=URL.createObjectURL(blob)
-a.download="simulation.csv"
-
-a.click()
-
-}
-
-function saveGraph(){
-
-let link=document.createElement("a")
-
-link.download="graph.png"
-link.href=document.getElementById("chart").toDataURL()
-
-link.click()
-
 }
 
 </script>
